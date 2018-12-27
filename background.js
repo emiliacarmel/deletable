@@ -1,36 +1,59 @@
+var tabsTimer = {};
+const myAudio = new Audio();
+myAudio.src = 'assests/wompwomp.mp3';
+
+
 chrome.runtime.onInstalled.addListener(() => {
-  // add functionality on onInstalled to turn off app if
-  // button is clicked
+  this.tabsTimer = {};
   chrome.storage.sync.set({ color: '#3aa757' }, () => {
-    console.log('The color is green.');
+    console.log('The color is what.');
   });
 });
 
 
-chrome.tabs.onCreated.addListener(() => {
-  // create unique timers per each new tab opened
-  chrome.alarms.create('timer', { delayInMinutes: 1 });
+chrome.tabs.onCreated.addListener((currTab) => {
+  chrome.tabs.query({ currentWindow: true, active: false }, (tabs) => {
+    tabs.forEach((tabObj) => {
+      if (!tabsTimer[tabObj.id]) {
+        chrome.alarms.create(`timer${tabObj.id}`, { delayInMinutes: 1 });
+        tabsTimer[tabObj.id] = `timer${tabObj.id}`;
+        // window.alert(tabsTimer[tabObj.id]);
+      } else {
+        // chrome.alarms.clear(`timer${tabObj.id}`);
+        // chrome.alarms.create(`timer${tabObj.id}`, { delayInMinutes: 1 });
+      }
+    });
+  });
 });
 
 // onHighlighted but not onCreated to make a change to alarm
 
-// chrome.tabs.onHighlighted.addListener((highlighted) => {
-//   chrome.alarms.get('timer', (alarm) => {window.alert(alarm.name)});
-//   if a unique tab has been accessed, reset its timer
-//   chrome.alarms.clear('timer');
-// })
+chrome.tabs.onHighlighted.addListener((highlighted) => {
+//   window.alert(highlighted.tabIds);
+//   chrome.alarms.clear(`timer${highlighted.tabIds}`);
+//   delete tabsTimer[highlighted.tabIds];
 
-var myAudio = new Audio();
-myAudio.src = "wompwomp.mp3";
-
-chrome.alarms.onAlarm.addListener(() => {
   chrome.tabs.query({ currentWindow: true, active: false }, (tabs) => {
+    // window.alert(`this current${highlighted.tabIds}`);
     tabs.forEach((tabObj) => {
-      myAudio.play();
-      chrome.tabs.query({ currentWindow: true, active: true }, (tabs) => {
-        
-      });
-      chrome.tabs.remove(tabObj.id);
+      if (!tabsTimer[tabObj.id]) {
+        chrome.alarms.create(`timer${tabObj.id}`, { delayInMinutes: 1 });
+        tabsTimer[tabObj.id] = `timer${tabObj.id}`;
+      } else {
+        // chrome.alarms.clear(`timer${tabObj.id}`);
+        // chrome.alarms.create(`timer${tabObj.id}`, { delayInMinutes: 1 });
+      }
     });
+  });
+});
+
+chrome.alarms.onAlarm.addListener((alarmDone) => {
+//   window.alert(`alarmDone name: ${alarmDone.name}`);
+  Object.entries(tabsTimer).forEach((tabEntry) => {
+    if (tabEntry[1] === alarmDone.name) {
+    //   window.alert(`tab id: ${typeof tabEntry[0]}`);
+      chrome.tabs.remove(parseInt(tabEntry[0], 10));
+      myAudio.play();
+    }
   });
 });
